@@ -40,12 +40,15 @@ pub fn keyGen(length: usize) ![]u8{
     for (1..half_len) |i| {
         try zero_list.append(i);
     }
+    var valid_spot: usize = 0;
     for (0..half_len-1) |_| {
         const index = blk:{
             while(true){
-                const num: u64 = rand.intRangeAtMost(u64,0,@as(u64,zero_list.items.len-1));
+                const num: u64 = rand.intRangeAtMost(u64,usize,@as(u64,zero_list.items.len-1));
                 if(!contains(zero_list.items[num..],0)){
                     break :blk num;
+                }else {
+                    valid_spot = num+1;
                 }
             }
         };
