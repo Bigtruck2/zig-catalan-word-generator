@@ -27,6 +27,14 @@ pub fn contains(list: anytype, key:anytype) bool{
     }
     return false;
 }
+pub fn firstOccurance(list:anytype, key:anytype) usize{
+    for (list, 0..) |value, i| {
+        if(value==key){
+            return i;
+        }
+    }
+    return undefined;
+}
 pub fn keyGen(length: usize) ![]u8{
     const rand = std.crypto.random;
     const half_len = @divExact(length,2);
@@ -44,11 +52,11 @@ pub fn keyGen(length: usize) ![]u8{
     for (0..half_len-1) |_| {
         const index = blk:{
             while(true){
-                const num: u64 = rand.intRangeAtMost(u64,usize,@as(u64,zero_list.items.len-1));
+                const num: u64 = rand.intRangeAtMost(u64,valid_spot,@as(u64,zero_list.items.len-1));
                 if(!contains(zero_list.items[num..],0)){
                     break :blk num;
                 }else {
-                    valid_spot = num+1;
+                    valid_spot = firstOccurance(zero_list.items[num..],0);
                 }
             }
         };
