@@ -2,14 +2,14 @@ const std = @import("std");
 const expect = std.testing.expect;
 const ArrayList = std.ArrayList;
 const Hashmap = std.AutoHashMap;
-const stdout = std.io.getStdOut().writer();
+const debug = std.debug;
 const BadInput = error{ NumberIsOdd, OutOfRange };
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
 pub fn getNum() !usize {
     const stdin = std.io.getStdIn().reader();
     var buf: [10]u8 = undefined;
-    try stdout.print("Enter a number: ", .{});
+    debug.print("Enter a number: ", .{});
     if (try stdin.readUntilDelimiterOrEof(buf[0..], '\n')) |num_input| {
         if (@mod(try std.fmt.parseInt(usize, num_input, 10), 2) == 1) {
             return BadInput.NumberIsOdd;
@@ -90,12 +90,22 @@ pub fn getBalance(range: []u8) bool {
     return true;
 }
 pub fn main() !void {
-    while (true) {
-        const length = try getNum();
+    var argsIterator = try std.process.ArgIterator.initWithAllocator(allocator);
+    defer argsIterator.deinit();
+    var run: bool = true;
+    _ = argsIterator.next();
+    while (run) {
+        var length: usize = 0;
+        if(argsIterator.next()) |len| {
+            length = try std.fmt.parseInt(usize,len,10);
+            run = false;
+        }else{
+            length = try getNum();
+        }
         var value = ArrayList(u8).init(allocator);
         defer value.deinit();
         try keyGen(length,&value);
-        try stdout.print("{s}\n", .{value.items});
+        debug.print("{s}\n", .{value.items});
     }
 }
 test "test dyck word" {
