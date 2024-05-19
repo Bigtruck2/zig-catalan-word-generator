@@ -4,6 +4,8 @@ const ArrayList = std.ArrayList;
 const Hashmap = std.AutoHashMap;
 const stdout = std.io.getStdOut().writer();
 const BadInput = error{ NumberIsOdd, OutOfRange };
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = gpa.allocator();
 pub fn getNum() !usize {
     const stdin = std.io.getStdIn().reader();
     var buf: [10]u8 = undefined;
@@ -33,14 +35,12 @@ pub fn firstOccurance(list: anytype, key: anytype) BadInput!usize {
     }
     return BadInput.OutOfRange;
 }
-pub fn keyGen(length: usize) ![]u8 {
+pub fn keyGen(length: usize, list_ptr: *std.ArrayList(u8)) !void {
     const rand = std.crypto.random;
     const half_len = @divExact(length, 2);
-    const allocator = std.heap.page_allocator;
-    var list = ArrayList(u8).init(allocator);
     var zero_list = ArrayList(usize).init(allocator);
     var zero_positions = Hashmap(usize, usize).init(allocator);
-    errdefer list.deinit();
+    //defer list.deinit();
     defer zero_positions.deinit();
     defer zero_list.deinit();
     for (1..half_len) |i| {
@@ -68,13 +68,12 @@ pub fn keyGen(length: usize) ![]u8 {
         }
     }
     for (0..half_len) |i| {
-        try list.append('1');
+        try list_ptr.*.append('1');
         if (zero_positions.get(i)) |value| {
-            try list.appendNTimes('0', value);
+            try list_ptr.*.appendNTimes('0', value);
         }
     }
-    try list.append('0');
-    return list.items;
+    try list_ptr.*.append('0');
 }
 pub fn getBalance(range: []u8) bool {
     var position: isize = 0;
@@ -92,13 +91,19 @@ pub fn getBalance(range: []u8) bool {
 }
 pub fn main() !void {
     while (true) {
-        const value = try keyGen(try getNum());
-        try stdout.print("{s}\n", .{value});
+        const length = try getNum();
+        var value = ArrayList(u8).init(allocator);
+        defer value.deinit();
+        try keyGen(length,&value);
+        try stdout.print("{s}\n", .{value.items});
     }
 }
 test "test dyck word" {
     const rand = std.crypto.random;
     for (0..100) |_| {
-        try expect(getBalance(try keyGen(rand.intRangeAtMost(usize, 2, 100) * 2)));
+        var value = ArrayList(u8).init(allocator);
+        defer value.deinit();
+        try keyGen(rand.intRangeAtMost(usize, 2, 100)*2,&value);
+        try expect(getBalance(value.items));
     }
 }
