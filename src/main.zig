@@ -3,7 +3,7 @@ const expect = std.testing.expect;
 const ArrayList = std.ArrayList;
 const Hashmap = std.AutoHashMap;
 const debug = std.debug;
-const BadInput = error{ NumberIsOdd, OutOfRange };
+const BadInput = error{ NumberIsOdd };
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
 pub fn getNum() !usize {
@@ -19,28 +19,11 @@ pub fn getNum() !usize {
         return @as(usize, 22);
     }
 }
-pub fn contains(list: anytype, key: anytype) bool {
-    for (list) |value| {
-        if (value == key) {
-            return true;
-        }
-    }
-    return false;
-}
-pub fn firstOccurance(list: anytype, key: anytype) BadInput!usize {
-    for (list, 0..) |value, i| {
-        if (value == key) {
-            return i;
-        }
-    }
-    return BadInput.OutOfRange;
-}
 pub fn keyGen(length: usize, list_ptr: *std.ArrayList(u8)) !void {
     const rand = std.crypto.random;
     const half_len = @divExact(length, 2);
     var zero_list = ArrayList(usize).init(allocator);
     var zero_positions = Hashmap(usize, usize).init(allocator);
-    //defer list.deinit();
     defer zero_positions.deinit();
     defer zero_list.deinit();
     for (1..half_len) |i| {
@@ -48,18 +31,15 @@ pub fn keyGen(length: usize, list_ptr: *std.ArrayList(u8)) !void {
     }
     var valid_spot: usize = 0;
     for (0..half_len - 1) |_| {
-        const index = blk: {
-            while (true) {
-                const num: usize = rand.intRangeAtMost(usize, valid_spot, zero_list.items.len);
-                if (!contains(zero_list.items[num..], 0)) {
-                    break :blk num;
-                } else {
-                    valid_spot = try firstOccurance(zero_list.items[num..], 0);
-                }
+        const index = rand.intRangeAtMost(usize, valid_spot, zero_list.items.len);
+        var i: usize = half_len - 2;
+        while (i >= index) : (i -= 1) {
+            if (zero_list.items[i] != 1) {
+                zero_list.items[i] -= 1;
+            } else {
+                valid_spot = i + 1;
+                break;
             }
-        };
-        for (index..half_len - 1) |i| {
-            zero_list.items[i] -= if (zero_list.items[i] != 0) 1 else 0;
         }
         if (zero_positions.get(index)) |value| {
             try zero_positions.put(index, value + 1);
@@ -96,15 +76,15 @@ pub fn main() !void {
     _ = argsIterator.next();
     while (run) {
         var length: usize = 0;
-        if(argsIterator.next()) |len| {
-            length = try std.fmt.parseInt(usize,len,10);
+        if (argsIterator.next()) |len| {
+            length = try std.fmt.parseInt(usize, len, 10);
             run = false;
-        }else{
+        } else {
             length = try getNum();
         }
         var value = ArrayList(u8).init(allocator);
         defer value.deinit();
-        try keyGen(length,&value);
+        try keyGen(length, &value);
         debug.print("{s}\n", .{value.items});
     }
 }
@@ -113,7 +93,7 @@ test "test dyck word" {
     for (0..100) |_| {
         var value = ArrayList(u8).init(allocator);
         defer value.deinit();
-        try keyGen(rand.intRangeAtMost(usize, 2, 100)*2,&value);
+        try keyGen(rand.intRangeAtMost(usize, 2, 100) * 2, &value);
         try expect(getBalance(value.items));
     }
 }
